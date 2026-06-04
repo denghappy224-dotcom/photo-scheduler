@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>摄影师排班日历</title>
+<style>
+:root {
+  --primary: #2c2c2a;
+  --accent: #D85A30;
+  --accent-light: #FAECE7;
+  --bg: #f5f4f2;
+  --card: #ffffff;
+  --border: #e8e6e1;
+  --text: #2c2c2a;
+  --text-s: #888780;
+  --text-h: #b4b2a9;
+  --success: #0F6E56;
+  --success-bg: #E1F5EE;
+  --warning: #BA7517;
+  --warning-bg: #FAEEDA;
+  --danger: #A32D2D;
+  --danger-bg: #FCEBEB;
+  --r: 10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh}
+.app{max-width:1200px;margin:0 auto;padding:20px 16px}
+
+/* Header */
+.hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.hd-left{display:flex;align-items:center;gap:10px}
+.logo{width:38px;height:38px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700}
+.hd h1{font-size:18px;font-weight:600}
+.hd p{font-size:12px;color:var(--text-s)}
+.modes{display:flex;gap:3px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:3px}
+.mbtn{padding:6px 16px;border:none;background:0;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text-s);font-weight:500;transition:.15s}
+.mbtn.on{background:var(--accent);color:#fff}
+
+/* Calendar Nav */
+.cnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cnav h2{font-size:17px;font-weight:600}
+.nbtn{display:flex;gap:6px;align-items:center}
+.nb{width:34px;height:34px;border:1px solid var(--border);background:var(--card);border-radius:8px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.nb:hover{background:var(--accent-light);border-color:var(--accent)}
+.nb.today{width:auto;padding:0 12px;font-size:12px;font-weight:500}
+
+/* Calendar Grid */
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border-radius:var(--r);overflow:hidden;border:1px solid var(--border);margin-bottom:20px}
+.chead{background:var(--card);padding:8px 0;text-align:center;font-size:12px;font-weight:500;color:var(--text-s)}
+.cday{background:var(--card);min-height:105px;padding:6px 7px;cursor:pointer;transition:.15s;position:relative;display:flex;flex-direction:column}
+.cday:hover{background:#faf9f7}
+.cday.other{opacity:.3;pointer-events:none}
+.cday.today .dnum{background:var(--accent);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}
+.drow{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.dnum{font-size:12px;font-weight:600;min-width:20px}
+.wicon{display:inline-block;width:16px;height:16px;vertical-align:middle;flex-shrink:0}
+.wtemp{font-size:10px;color:var(--text-h)}
+.wsrc{font-size:10px;color:var(--text-h);text-align:right;margin-top:2px;padding:0 4px}
+.wsrc a{color:var(--text-h);text-decoration:none}
+.wsrc a:hover{text-decoration:underline}
+
+/* Mini Timeline */
+.mtl{flex:1;position:relative;border-radius:4px;background:#f0efed;overflow:hidden;min-height:14px;margin-top:2px}
+.mtl-seg{position:absolute;top:0;height:100%;border-radius:2px;opacity:.85;min-width:3px}
+
+/* Booking chips under timeline */
+.dchips{margin-top:4px;display:flex;flex-direction:column;gap:1px}
+.dchip{font-size:9px;padding:1px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Main Layout */
+.mlay{display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start}
+@media(max-width:900px){.mlay{grid-template-columns:1fr}}
+
+/* Side Panel */
+.spanel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:sticky;top:20px}
+.sp-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sp-hd h3{font-size:15px;font-weight:600}
+.sp-bd{padding:14px 18px;max-height:70vh;overflow-y:auto}
+.sp-empty{text-align:center;padding:30px 16px;color:var(--text-h)}
+.sp-empty p{font-size:13px}
+
+/* Hourly Timeline */
+.htl{position:relative}
+.hrow{display:flex;align-items:stretch;min-height:42px;border-bottom:1px solid #f2f1ef;cursor:pointer;transition:.1s}
+.hrow:hover{background:#faf9f7}
+.hrow.booked{cursor:default}
+.hrow.booked:hover{background:0}
+.htime{width:48px;font-size:11px;color:var(--text-h);padding-top:4px;flex-shrink:0;text-align:right;padding-right:8px}
+.hcont{flex:1;position:relative;padding:3px 6px}
+.hbook{position:absolute;left:0;right:0;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:500;color:#fff;overflow:hidden;z-index:1;cursor:pointer;transition:filter .15s}
+.hbook:hover{filter:brightness(1.1)}
+.hbook .hb-client{font-size:12px;font-weight:600}
+.hbook .hb-type{font-size:10px;opacity:.85}
+.hbook .hb-loc{font-size:10px;opacity:.7}
+.hadd{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:1px dashed var(--border);background:0;display:flex;align-items:center;justify-content:center;color:var(--text-h);font-size:14px;opacity:0;transition:.15s;cursor:pointer}
+.hrow:hover .hadd{opacity:1}
+.hadd:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-bg.on{display:flex}
+.modal{background:var(--card);border-radius:14px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.m-hd{padding:18px 22px 0;display:flex;justify-content:space-between;align-items:center}
+.m-hd h3{font-size:16px;font-weight:600}
+.m-cl{width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text-s)}
+.m-cl:hover{background:var(--danger-bg);color:var(--danger)}
+.m-bd{padding:18px 22px}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:12px;font-weight:500;color:var(--text-s);margin-bottom:3px}
+.fg input,.fg select,.fg textarea{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;background:var(--bg);transition:border .15s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--accent)}
+.fg textarea{resize:vertical;min-height:50px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* Color Picker */
+.cpick{display:flex;gap:6px;flex-wrap:wrap}
+.copt{width:28px;height:28px;border-radius:7px;cursor:pointer;border:2px solid transparent;transition:.15s}
+.copt:hover{transform:scale(1.1)}
+.copt.on{border-color:var(--text);transform:scale(1.1)}
+
+/* Status Badge */
+.sbadge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500}
+.sbadge.conf{background:var(--success-bg);color:var(--success)}
+.sbadge.pend{background:var(--warning-bg);color:var(--warning)}
+.sbadge.canc{background:var(--danger-bg);color:var(--danger)}
+
+/* Booking Actions */
+.bacts{display:flex;gap:5px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+.babtn{border:none;background:0;font-size:11px;cursor:pointer;padding:3px 8px;border-radius:4px;color:var(--text-s);transition:.15s}
+.babtn:hover{background:var(--bg)}
+.babtn.del{color:var(--danger)}
+.babtn.del:hover{background:var(--danger-bg)}
+
+/* Modal Footer */
+.m-ft{padding:0 22px 18px;display:flex;gap:8px;justify-content:flex-end}
+.btn1{padding:8px 22px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;transition:.15s}
+.btn1:hover{opacity:.9}
+.btn2{padding:8px 22px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:13px;cursor:pointer;transition:.15s}
+.btn2:hover{border-color:var(--text-s)}
+
+/* Client View */
+.client-banner{background:var(--accent-light);border:1px solid #f0c8b8;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#712B13;display:flex;align-items:center;gap:8px}
+
+/* Weather City Selector */
+.city-select-wrap{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.city-select-wrap label{font-size:12px;color:var(--text-s);white-space:nowrap}
+.city-select{padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;background:var(--card);color:var(--text);cursor:pointer;min-width:140px}
+.city-select:focus{outline:none;border-color:var(--accent)}
+.wload{font-size:11px;color:var(--text-h);margin-left:auto;display:flex;align-items:center;gap:4px}
+.wload .spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.werr{font-size:11px;color:var(--danger);margin-left:auto}
+
+/* Legend */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-s)}
+.legend-dot{width:12px;height:12px;border-radius:3px}
+.legend-empty{width:12px;height:12px;border-radius:3px;background:#f0efed;border:1px solid var(--border)}
+
+/* Scrollbar */
+.sp-bd::-webkit-scrollbar{width:4px}
+.sp-bd::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* Header buttons */
+.hd-actions{display:flex;gap:6px;align-items:center}
+.hdbtn{padding:7px 14px;border:1px solid var(--border);background:var(--card);border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--text);transition:.15s}
+.hdbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.hdbtn.locked{background:var(--accent-light);border-color:#f0c8b8;color:#712B13}
+.hdbtn .licon{font-size:14px}
+
+/* Password Modal */
+.pwd-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.pwd-modal-bg.on{display:flex}
+.pwd-modal{background:var(--card);border-radius:14px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.15);padding:24px}
+.pwd-modal h3{font-size:16px;font-weight:600;margin-bottom:14px}
+.pwd-modal p{font-size:12px;color:var(--text-s);margin-bottom:14px}
+.pwd-input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:7px;font-size:14px;font-family:inherit;letter-spacing:2px;background:var(--bg);margin-bottom:14px}
+.pwd-input:focus{outline:none;border-color:var(--accent)}
+.pwd-actions{display:flex;gap:8px;justify-content:flex-end}
+.pwd-hint{font-size:11px;color:var(--danger);margin-top:4px;min-height:16px}
+
+/* Toast */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:300;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Share Banner (client view) */
+.share-banner{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-s);display:flex;align-items:center;gap:8px}
+.share-banner .sb-label{color:var(--text);font-weight:500}
+.share-banner .sb-time{margin-left:auto;font-size:11px;color:var(--text-h)}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="hd">
+    <div class="hd-left">
+      <div class="logo">P</div>
+      <div>
+        <h1>摄影师排班日历</h1>
+        <p>点击日期添加预约 / 色块显示已占时段</p>
+      </div>
+    </div>
+    <div class="hd-actions">
+      <button class="hdbtn" id="shareBtn" onclick="openShareLink()">🔗 分享链接</button>
+      <button class="hdbtn locked" id="lockBtn" onclick="toggleAdmin()">🔒 管理</button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend" id="legend"></div>
+
+  <!-- Client Banner (hidden by default) -->
+  <div class="client-banner" id="clientBanner" style="display:none">
+    <span>&#9432;</span> 您正在查看摄影师的排班情况，色块表示该时段已被预约，空白时段可约。
+  </div>
+
+  <!-- Share Banner (shown when viewing shared data) -->
+  <div class="share-banner" id="shareBanner" style="display:none">
+    <span>📋</span>
+    <span class="sb-label" id="shareLabel">查看摄影师排班</span>
+    <span class="sb-time" id="shareTime"></span>
+  </div>
+
+  <!-- City Selector + Calendar Nav -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+    <div class="city-select-wrap">
+      <label>📍 城市</label>
+      <select class="city-select" id="citySelect" onchange="changeCity(this.value)">
+        <option value="">选择城市</option>
+      </select>
+    </div>
+    <div id="weatherStatus"></div>
+  </div>
+  <div class="cnav">
+    <h2 id="calTitle"></h2>
+    <div class="nbtn">
+      <button class="nb" onclick="changeMonth(-1)">&#8249;</button>
+      <button class="nb today" onclick="goToday()">今天</button>
+      <button class="nb" onclick="changeMonth(1)">&#8250;</button>
+    </div>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="cgrid" id="calGrid"></div>
+
+  <!-- Weather Source Attribution -->
+  <div class="wsrc" id="wsrc" style="display:none">
+    天气数据来源：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo API</a>
+    &middot; 基于 WMO 天气编码 &middot; 每3小时自动刷新
+  </div>
+
+  <!-- Side Panel -->
+  <div class="mlay">
+    <div></div>
+    <div class="spanel" id="sidePanel">
+      <div class="sp-hd">
+        <h3 id="spTitle">选择一个日期</h3>
+      </div>
+      <div class="sp-bd" id="spBody">
+        <div class="sp-empty">
+          <p>点击左侧日历中的日期</p>
+          <p>查看或添加预约</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="m-hd">
+      <h3 id="modalTitle">添加预约</h3>
+      <button class="m-cl" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="m-bd">
+      <input type="hidden" id="fId">
+      <input type="hidden" id="fDate">
+      <div class="fr">
+        <div class="fg">
+          <label>开始时间</label>
+          <input type="time" id="fStart" value="09:00">
+        </div>
+        <div class="fg">
+          <label>结束时间</label>
+          <input type="time" id="fEnd" value="11:00">
+        </div>
+      </div>
+      <div class="fg">
+        <label>客户姓名</label>
+        <input type="text" id="fClient" placeholder="输入客户姓名">
+      </div>
+      <div class="fr">
+        <div class="fg">
+          <label>拍摄类型</label>
+          <select id="fType">
+            <option value="人像写真">人像写真</option>
+            <option value="证件照">证件照</option>
+            <option value="婚纱摄影">婚纱摄影</option>
+            <option value="产品拍摄">产品拍摄</option>
+            <option value="活动跟拍">活动跟拍</option>
+            <option value="商业广告">商业广告</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>金额 (元)</label>
+          <input type="number" id="fPrice" placeholder="0">
+        </div>
+      </div>
+      <div class="fg">
+        <label>拍摄地点</label>
+        <input type="text" id="fLoc" placeholder="输入拍摄地点">
+      </div>
+      <div class="fg">
+        <label>联系方式</label>
+        <input type="text" id="fContact" placeholder="电话 / 微信">
+      </div>
+      <div class="fg">
+        <label>色块颜色</label>
+        <div class="cpick" id="colorPick"></div>
+      </div>
+      <div class="fr">
+        <div class="fg">
+          <label>状态</label>
+          <select id="fStatus">
+            <option value="pending">待确认</option>
+            <option value="confirmed">已确认</option>
+            <option value="cancelled">已取消</option>
+          </select>
+        </div>
+        <div class="fg"></div>
+      </div>
+      <div class="fg">
+        <label>备注</label>
+        <textarea id="fNotes" placeholder="其他备注信息"></textarea>
+      </div>
+    </div>
+    <div class="m-ft">
+      <button class="btn2" onclick="closeModal()">取消</button>
+      <button class="btn1" onclick="saveBooking()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password Modal -->
+<div class="pwd-modal-bg" id="pwdModalBg">
+  <div class="pwd-modal">
+    <h3 id="pwdTitle">🔒 输入管理密码</h3>
+    <p id="pwdDesc">输入密码以进入管理模式，可以添加和编辑预约</p>
+    <input type="password" class="pwd-input" id="pwdInput" placeholder="请输入密码" autocomplete="off">
+    <div class="pwd-hint" id="pwdHint"></div>
+    <div class="pwd-actions">
+      <button class="btn2" onclick="closePwdModal()">取消</button>
+      <button class="btn1" onclick="submitPwd()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ CONFIG ============
+const COLORS = [
+  { name: '珊瑚红', hex: '#D85A30' },
+  { name: '海洋蓝', hex: '#378ADD' },
+  { name: '森林绿', hex: '#0F6E56' },
+  { name: '琥珀橙', hex: '#BA7517' },
+  { name: '梦幻紫', hex: '#534AB7' },
+  { name: '玫瑰粉', hex: '#D4537E' },
+  { name: '石墨灰', hex: '#5F5E5A' },
+  { name: '湖水青', hex: '#1D9E75' }
+];
+
+const SHOOT_TYPES = ['人像写真','证件照','婚纱摄影','产品拍摄','活动跟拍','商业广告','其他'];
+const STATUS_MAP = { confirmed: { label: '已确认', cls: 'conf' }, pending: { label: '待确认', cls: 'pend' }, cancelled: { label: '已取消', cls: 'canc' } };
+
+// ============ CHINESE CITIES ============
+const CITIES = [
+  { name: '北京', lat: 39.9042, lon: 116.4074 },
+  { name: '上海', lat: 31.2304, lon: 121.4737 },
+  { name: '广州', lat: 23.1291, lon: 113.2644 },
+  { name: '深圳', lat: 22.5431, lon: 114.0579 },
+  { name: '杭州', lat: 30.2741, lon: 120.1551 },
+  { name: '武汉', lat: 30.5928, lon: 114.3055 },
+  { name: '成都', lat: 30.5728, lon: 104.0668 },
+  { name: '南京', lat: 32.0603, lon: 118.7969 },
+  { name: '西安', lat: 34.3416, lon: 108.9398 },
+  { name: '重庆', lat: 29.5630, lon: 106.5516 },
+  { name: '长沙', lat: 28.2280, lon: 112.9388 },
+  { name: '郑州', lat: 34.7466, lon: 113.6253 },
+  { name: '苏州', lat: 31.2989, lon: 120.5853 },
+  { name: '天津', lat: 39.0842, lon: 117.2010 },
+  { name: '青岛', lat: 36.0671, lon: 120.3826 },
+  { name: '厦门', lat: 24.4798, lon: 118.0894 },
+  { name: '昆明', lat: 25.0389, lon: 102.7183 },
+  { name: '大连', lat: 38.9140, lon: 121.6147 },
+  { name: '济南', lat: 36.6512, lon: 117.1201 },
+  { name: '哈尔滨', lat: 45.8038, lon: 126.5349 },
+  { name: '沈阳', lat: 41.8057, lon: 123.4315 },
+  { name: '合肥', lat: 31.8206, lon: 117.2272 },
+  { name: '福州', lat: 26.0745, lon: 119.2965 },
+  { name: '南宁', lat: 22.8170, lon: 108.3665 },
+  { name: '南昌', lat: 28.6820, lon: 115.8579 },
+  { name: '兰州', lat: 36.0611, lon: 103.8343 },
+  { name: '贵阳', lat: 26.6477, lon: 106.6302 },
+  { name: '海口', lat: 20.0440, lon: 110.1999 },
+  { name: '太原', lat: 37.8706, lon: 112.5489 },
+  { name: '长春', lat: 43.8171, lon: 125.3235 },
+  { name: '乌鲁木齐', lat: 43.8256, lon: 87.6168 },
+  { name: '拉萨', lat: 29.6525, lon: 91.1721 },
+  { name: '银川', lat: 38.4872, lon: 106.2309 },
+  { name: '西宁', lat: 36.6171, lon: 101.7782 },
+  { name: '呼和浩特', lat: 40.8414, lon: 111.7519 },
+  { name: '石家庄', lat: 38.0428, lon: 114.5149 },
+  { name: '香港', lat: 22.3193, lon: 114.1694 },
+  { name: '澳门', lat: 22.1987, lon: 113.5439 },
+  { name: '台北', lat: 25.0330, lon: 121.5654 }
+];
+
+const HOUR_START = 6, HOUR_END = 22;
+
+// ============ STATE ============
+function getDefaultCity() {
+  try {
+    const s = localStorage.getItem('photo_cal_city');
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return CITIES[5]; // Default: 武汉
+}
+
+let state = {
+  year: new Date().getFullYear(),
+  month: new Date().getMonth(),
+  selectedDate: null,
+  mode: 'client',  // Default: client view (read-only)
+  adminUnlocked: false,  // Whether admin mode is unlocked
+  isSharedView: false,  // Viewing from a shared link
+  bookings: [],
+  weather: {},
+  selectedColor: COLORS[0].hex,
+  city: getDefaultCity(),
+  weatherLoading: false,
+  weatherError: null
+};
+
+// ============ PERSISTENCE ============
+function loadState() {
+  try {
+    const d = localStorage.getItem('photo_cal_bookings');
+    if (d) state.bookings = JSON.parse(d);
+  } catch(e) {}
+}
+function saveState() {
+  localStorage.setItem('photo_cal_bookings', JSON.stringify(state.bookings));
+}
+
+// ============ WEATHER ============
+// Weather data source: Open-Meteo API (https://open-meteo.com/)
+// Based on WMO (World Meteorological Organization) weather interpretation codes
+// Reference: https://open-meteo.com/en/docs#weathervariables
+// License: Open-Meteo is free for non-commercial use, CC BY 4.0 attribution
+
+// SVG weather icons (consistent rendering across all platforms)
+function weatherSVG(code, size = 16) {
+  const s = size;
+  const icons = {
+    // Clear sky
+    0: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="12" cy="12" r="5" fill="#F5C4B3" stroke="#E8943A" stroke-width="1.5"/><g stroke="#E8943A" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.6" y1="4.6" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.4" y2="19.4"/><line x1="4.6" y1="19.4" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.4" y2="4.6"/></g></svg>`,
+    // Mainly clear
+    1: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="9" cy="10" r="4" fill="#F5C4B3" stroke="#E8943A" stroke-width="1.2"/><g stroke="#E8943A" stroke-width="1.2" stroke-linecap="round"><line x1="9" y1="2" x2="9" y2="4"/><line x1="9" y1="16" x2="9" y2="18"/><line x1="2" y1="10" x2="4" y2="10"/><line x1="3" y1="4" x2="4.5" y2="5.5"/><line x1="3" y1="16" x2="4.5" y2="14.5"/></g><path d="M10 18a5 5 0 0 1 5-5h2a5 5 0 0 1 0 10h-2a5 5 0 0 1-5-5z" fill="#c8c8c8" stroke="#999" stroke-width="0.8"/></svg>`,
+    // Partly cloudy
+    2: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="9" r="3.5" fill="#F5C4B3" stroke="#E8943A" stroke-width="1.2"/><g stroke="#E8943A" stroke-width="1" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="4"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="3" y1="4" x2="4.5" y2="5.5"/><line x1="3" y1="14" x2="4.5" y2="12.5"/></g><path d="M8 18a4.5 4.5 0 0 1 4.5-4.5H15a4.5 4.5 0 0 1 4.5 4.5A4.5 4.5 0 0 1 15 22.5h-2.5A4.5 4.5 0 0 1 8 18z" fill="#d8d8d8" stroke="#999" stroke-width="0.8"/><path d="M4 18a3.5 3.5 0 0 1 3.5-3.5H9a3.5 3.5 0 0 1 0 7H7.5A3.5 3.5 0 0 1 4 18z" fill="#e8e8e8" stroke="#aaa" stroke-width="0.8"/></svg>`,
+    // Overcast
+    3: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 18a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 18z" fill="#d8d8d8" stroke="#999" stroke-width="0.8"/><path d="M8 15a4.5 4.5 0 0 1 4.5-4.5H15a4.5 4.5 0 0 1 4.5 4.5A4.5 4.5 0 0 1 15 19.5h-2.5A4.5 4.5 0 0 1 8 15z" fill="#b8b8b8" stroke="#888" stroke-width="0.8"/></svg>`,
+    // Fog
+    45: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><g stroke="#aaa" stroke-width="1.5" stroke-linecap="round" opacity="0.7"><line x1="3" y1="8" x2="21" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="7" y1="20" x2="17" y2="20"/></g></svg>`,
+    48: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><g stroke="#8ab4d0" stroke-width="1.5" stroke-linecap="round" opacity="0.7"><line x1="3" y1="8" x2="21" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="7" y1="20" x2="17" y2="20"/></g></svg>`,
+    // Drizzle
+    51: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 14a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 14z" fill="#d8d8d8" stroke="#999" stroke-width="0.8"/><path d="M9 11a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#c8c8c8" stroke="#888" stroke-width="0.8"/><g fill="#5BA3E6"><circle cx="9" cy="20" r="1"/><circle cx="14" cy="21" r="1"/></g></svg>`,
+    53: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 13a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 13z" fill="#d0d0d0" stroke="#999" stroke-width="0.8"/><path d="M9 10a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#c0c0c0" stroke="#888" stroke-width="0.8"/><g fill="#4A90D9"><circle cx="8" cy="20" r="1.2"/><circle cx="13" cy="21" r="1.2"/><circle cx="17" cy="19" r="1.2"/></g></svg>`,
+    55: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#c8c8c8" stroke="#999" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b8b8b8" stroke="#888" stroke-width="0.8"/><g fill="#3A7CC6"><circle cx="7" cy="19" r="1.3"/><circle cx="12" cy="21" r="1.3"/><circle cx="17" cy="19" r="1.3"/></g></svg>`,
+    // Rain
+    61: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 13a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 13z" fill="#c0c0c0" stroke="#888" stroke-width="0.8"/><path d="M9 10a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#aaa" stroke="#777" stroke-width="0.8"/><g stroke="#4A90D9" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="17" x2="7" y2="21"/><line x1="12" y1="17" x2="11" y2="21"/><line x1="16" y1="17" x2="15" y2="21"/></g></svg>`,
+    63: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#b8b8b8" stroke="#888" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><g stroke="#3A7CC6" stroke-width="2" stroke-linecap="round"><line x1="7" y1="16" x2="5" y2="22"/><line x1="12" y1="16" x2="10" y2="22"/><line x1="17" y1="16" x2="15" y2="22"/></g></svg>`,
+    65: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 11a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 11z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><path d="M9 8a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#989898" stroke="#666" stroke-width="0.8"/><g stroke="#2B66B3" stroke-width="2.5" stroke-linecap="round"><line x1="6" y1="15" x2="3.5" y2="22.5"/><line x1="11" y1="15" x2="8.5" y2="22.5"/><line x1="16" y1="15" x2="13.5" y2="22.5"/><line x1="21" y1="15" x2="18.5" y2="22.5"/></g></svg>`,
+    66: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#b8b8b8" stroke="#888" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><g stroke="#7CB8E8" stroke-width="1.8" stroke-linecap="round"><line x1="7" y1="16" x2="6" y2="21"/><line x1="12" y1="16" x2="11" y2="21"/><line x1="17" y1="16" x2="16" y2="21"/></g><g fill="#8ab4d0"><polygon points="7,21 6,23 8,23"/></g></svg>`,
+    67: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 11a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 11z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><path d="M9 8a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#989898" stroke="#666" stroke-width="0.8"/><g stroke="#7CB8E8" stroke-width="2" stroke-linecap="round"><line x1="6" y1="15" x2="4" y2="22"/><line x1="12" y1="15" x2="10" y2="22"/><line x1="18" y1="15" x2="16" y2="22"/></g><g fill="#8ab4d0"><polygon points="6,22 5,24 7,24"/><polygon points="12,22 11,24 13,24"/></g></svg>`,
+    // Snow
+    71: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 13a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 13z" fill="#d0d8e0" stroke="#9ab" stroke-width="0.8"/><path d="M9 10a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#c0c8d0" stroke="#8aa" stroke-width="0.8"/><g fill="#8ab4d0"><circle cx="8" cy="20" r="1.2"/><circle cx="13" cy="21" r="1.2"/></g></svg>`,
+    73: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#c0c8d0" stroke="#9ab" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b0b8c0" stroke="#8aa" stroke-width="0.8"/><g fill="#7CB8E8"><circle cx="7" cy="19" r="1.3"/><circle cx="12" cy="21" r="1.3"/><circle cx="17" cy="19" r="1.3"/></g></svg>`,
+    75: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 11a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 11z" fill="#b0b8c0" stroke="#8aa" stroke-width="0.8"/><path d="M9 8a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#a0a8b0" stroke="#7aa" stroke-width="0.8"/><g fill="#6AA4D8"><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="18" cy="18" r="1.5"/><circle cx="9" cy="22" r="1.5"/><circle cx="15" cy="22" r="1.5"/></g></svg>`,
+    77: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#c0c8d0" stroke="#9ab" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b0b8c0" stroke="#8aa" stroke-width="0.8"/><g fill="#8ab4d0"><rect x="7" y="19" width="2" height="2" rx="0.3" transform="rotate(45,8,20)"/><rect x="12" y="20" width="2" height="2" rx="0.3" transform="rotate(45,13,21)"/></g></svg>`,
+    // Rain showers
+    80: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="7" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 14a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 14z" fill="#c0c0c0" stroke="#888" stroke-width="0.8"/><path d="M9 11a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b0b0b0" stroke="#777" stroke-width="0.8"/><g stroke="#4A90D9" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="17" x2="7" y2="21"/><line x1="13" y1="17" x2="12" y2="21"/></g></svg>`,
+    81: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="6" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 13a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 13z" fill="#b8b8b8" stroke="#888" stroke-width="0.8"/><path d="M9 10a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><g stroke="#3A7CC6" stroke-width="1.8" stroke-linecap="round"><line x1="7" y1="16" x2="5.5" y2="21"/><line x1="12" y1="16" x2="10.5" y2="21"/><line x1="17" y1="16" x2="15.5" y2="21"/></g></svg>`,
+    82: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="5" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#989898" stroke="#666" stroke-width="0.8"/><g stroke="#2B66B3" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="15" x2="4" y2="22"/><line x1="11" y1="15" x2="9" y2="22"/><line x1="16" y1="15" x2="14" y2="22"/><line x1="21" y1="15" x2="19" y2="22"/></g></svg>`,
+    // Snow showers
+    85: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="7" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 13a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 13z" fill="#d0d8e0" stroke="#9ab" stroke-width="0.8"/><path d="M9 10a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#c0c8d0" stroke="#8aa" stroke-width="0.8"/><g fill="#8ab4d0"><circle cx="8" cy="19" r="1.2"/><circle cx="13" cy="21" r="1.2"/></g></svg>`,
+    86: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="6" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#c0c8d0" stroke="#8aa" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b0b8c0" stroke="#7aa" stroke-width="0.8"/><g fill="#6AA4D8"><circle cx="7" cy="18" r="1.4"/><circle cx="12" cy="20" r="1.4"/><circle cx="17" cy="18" r="1.4"/></g></svg>`,
+    // Thunderstorm
+    95: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#888" stroke="#666" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#777" stroke="#555" stroke-width="0.8"/><polygon points="12,14 9,20 11.5,20 10,24 16,18 13,18 15,14" fill="#E8943A"/></svg>`,
+    96: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#888" stroke="#666" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#777" stroke="#555" stroke-width="0.8"/><polygon points="12,14 9,20 11.5,20 10,24 16,18 13,18 15,14" fill="#E8943A"/><g fill="#6AA4D8"><circle cx="7" cy="21" r="1"/><circle cx="17" cy="21" r="1"/></g></svg>`,
+    99: `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 11a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 11z" fill="#777" stroke="#555" stroke-width="0.8"/><path d="M9 8a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#666" stroke="#444" stroke-width="0.8"/><polygon points="11,13 8,19 10.5,19 9,23 16,17 13,17 15,13" fill="#D85A30"/><g stroke="#2B66B3" stroke-width="2" stroke-linecap="round"><line x1="6" y1="17" x2="4" y2="22"/><line x1="18" y1="17" x2="16" y2="22"/></g></svg>`
+  };
+  return icons[code] || `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="12" cy="12" r="5" fill="none" stroke="#aaa" stroke-width="1.5"/><text x="12" y="16" text-anchor="middle" font-size="10" fill="#aaa">?</text></svg>`;
+}
+
+// WMO Weather interpretation codes (World Meteorological Organization)
+// Reference: https://open-meteo.com/en/docs#weathervariables
+const WMO_CODES = {
+  0: { svg: 0, label: '晴' },
+  1: { svg: 1, label: '大部晴' },
+  2: { svg: 2, label: '多云' },
+  3: { svg: 3, label: '阴' },
+  45: { svg: 45, label: '雾' },
+  48: { svg: 48, label: '冻雾' },
+  51: { svg: 51, label: '小毛毛雨' },
+  53: { svg: 53, label: '毛毛雨' },
+  55: { svg: 55, label: '大毛毛雨' },
+  61: { svg: 61, label: '小雨' },
+  63: { svg: 63, label: '中雨' },
+  65: { svg: 65, label: '大雨' },
+  66: { svg: 66, label: '冻雨' },
+  67: { svg: 67, label: '大冻雨' },
+  71: { svg: 71, label: '小雪' },
+  73: { svg: 73, label: '中雪' },
+  75: { svg: 75, label: '大雪' },
+  77: { svg: 77, label: '雪粒' },
+  80: { svg: 80, label: '小阵雨' },
+  81: { svg: 81, label: '阵雨' },
+  82: { svg: 82, label: '大阵雨' },
+  85: { svg: 85, label: '小阵雪' },
+  86: { svg: 86, label: '大阵雪' },
+  95: { svg: 95, label: '雷暴' },
+  96: { svg: 96, label: '雷暴冰雹' },
+  99: { svg: 99, label: '强雷暴冰雹' }
+};
+
+function renderCitySelector() {
+  const sel = document.getElementById('citySelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">选择城市</option>';
+  CITIES.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.textContent = c.name;
+    if (state.city && state.city.name === c.name) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function changeCity(cityName) {
+  const city = CITIES.find(c => c.name === cityName);
+  if (!city) return;
+  state.city = city;
+  localStorage.setItem('photo_cal_city', JSON.stringify(city));
+  state.weather = {};
+  state.weatherError = null;
+  renderCalendar();
+  fetchWeather();
+}
+
+function setWeatherStatus(type, msg) {
+  const el = document.getElementById('weatherStatus');
+  if (!el) return;
+  if (type === 'loading') {
+    el.innerHTML = `<div class="wload"><div class="spinner"></div>正在获取天气...</div>`;
+  } else if (type === 'error') {
+    el.innerHTML = `<div class="werr">${msg}</div>`;
+  } else if (type === 'ok') {
+    el.innerHTML = `<div class="wload" style="color:var(--success)">${msg}</div>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+async function fetchWeather() {
+  if (!state.city) return;
+  state.weatherLoading = true;
+  state.weatherError = null;
+  setWeatherStatus('loading');
+
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${state.city.lat}&longitude=${state.city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FShanghai&forecast_days=16`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data && data.daily && data.daily.time) {
+      const w = {};
+      data.daily.time.forEach((date, i) => {
+        w[date] = {
+          code: data.daily.weather_code[i],
+          max: data.daily.temperature_2m_max[i],
+          min: data.daily.temperature_2m_min[i]
+        };
+      });
+      state.weather = w;
+      state.weatherError = null;
+      localStorage.setItem('photo_cal_weather', JSON.stringify({
+        ts: Date.now(),
+        city: state.city.name,
+        data: w
+      }));
+      document.getElementById('wsrc').style.display = 'block';
+      setWeatherStatus('ok', `已更新 · ${state.city.name}`);
+      renderCalendar();
+    } else {
+      throw new Error('数据格式异常');
+    }
+  } catch(e) {
+    console.warn('Weather fetch failed:', e);
+    state.weatherError = e.message || '获取失败';
+    const isPreview = window.location.protocol === 'file:' || window.location.hostname === '';
+    const msg = isPreview
+      ? '天气数据需用浏览器打开本文件才能加载（预览环境受限）'
+      : `天气获取失败: ${state.weatherError}`;
+    setWeatherStatus('error', msg);
+  } finally {
+    state.weatherLoading = false;
+  }
+}
+
+function loadWeatherCache() {
+  try {
+    const d = localStorage.getItem('photo_cal_weather');
+    if (d) {
+      const parsed = JSON.parse(d);
+      // Must match current city
+      if (parsed.city && state.city && parsed.city === state.city.name &&
+          Date.now() - parsed.ts < 3 * 60 * 60 * 1000) {
+        state.weather = parsed.data;
+        document.getElementById('wsrc').style.display = 'block';
+        setWeatherStatus('ok', `${state.city.name} · 已缓存`);
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+function getWeatherInfo(dateStr) {
+  const w = state.weather[dateStr];
+  if (!w) return null;
+  const info = WMO_CODES[w.code] || { svg: -1, label: '未知' };
+  return { svgCode: info.svg, label: info.label, max: Math.round(w.max), min: Math.round(w.min) };
+}
+
+// ============ CALENDAR RENDERING ============
+function renderCalendar() {
+  const { year, month } = state;
+  const title = document.getElementById('calTitle');
+  title.textContent = `${year}年${month + 1}月`;
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  // Day headers
+  const days = ['日','一','二','三','四','五','六'];
+  days.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'chead';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  // Calculate days
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const todayStr = fmt(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Previous month trailing days
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = prevMonthDays - i;
+    const cell = createDayCell(d, true, null);
+    grid.appendChild(cell);
+  }
+
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = fmt(year, month, d);
+    const isToday = dateStr === todayStr;
+    const weather = getWeatherInfo(dateStr);
+    const dayBookings = getBookingsForDate(dateStr);
+    const cell = createDayCell(d, false, weather, isToday, dateStr, dayBookings);
+    grid.appendChild(cell);
+  }
+
+  // Next month leading days
+  const totalCells = firstDay + daysInMonth;
+  const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let d = 1; d <= remaining; d++) {
+    const cell = createDayCell(d, true, null);
+    grid.appendChild(cell);
+  }
+
+  // Update legend
+  renderLegend();
+}
+
+function fmt(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function createDayCell(dayNum, isOther, weather, isToday, dateStr, dayBookings) {
+  const cell = document.createElement('div');
+  cell.className = 'cday' + (isOther ? ' other' : '') + (isToday ? ' today' : '');
+
+  // Top row: date + weather
+  const drow = document.createElement('div');
+  drow.className = 'drow';
+  const dnum = document.createElement('span');
+  dnum.className = 'dnum';
+  dnum.textContent = dayNum;
+  drow.appendChild(dnum);
+
+  if (weather) {
+    const wicon = document.createElement('span');
+    wicon.className = 'wicon';
+    wicon.innerHTML = weatherSVG(weather.svgCode);
+    wicon.title = weather.label;
+    drow.appendChild(wicon);
+    const wtemp = document.createElement('span');
+    wtemp.className = 'wtemp';
+    wtemp.textContent = `${weather.max}°`;
+    drow.appendChild(wtemp);
+  }
+  cell.appendChild(drow);
+
+  // Mini timeline bar (6:00 - 22:00)
+  if (!isOther && dateStr && dayBookings && dayBookings.length > 0) {
+    const mtl = document.createElement('div');
+    mtl.className = 'mtl';
+    const totalHours = HOUR_END - HOUR_START;
+
+    dayBookings.forEach(b => {
+      if (b.status === 'cancelled') return;
+      const seg = document.createElement('div');
+      seg.className = 'mtl-seg';
+      seg.style.background = b.color;
+      const start = parseHour(b.startTime);
+      const end = parseHour(b.endTime);
+      const left = ((start - HOUR_START) / totalHours * 100);
+      const width = ((end - start) / totalHours * 100);
+      seg.style.left = left + '%';
+      seg.style.width = Math.max(width, 2) + '%';
+      seg.title = `${b.startTime}-${b.endTime} ${b.clientName} (${b.type})`;
+      mtl.appendChild(seg);
+    });
+    cell.appendChild(mtl);
+
+    // Compact booking chips
+    const chips = document.createElement('div');
+    chips.className = 'dchips';
+    dayBookings.slice(0, 2).forEach(b => {
+      const chip = document.createElement('div');
+      chip.className = 'dchip';
+      chip.style.background = b.color + '22';
+      chip.style.color = b.color;
+      chip.textContent = `${b.startTime} ${b.clientName}`;
+      chips.appendChild(chip);
+    });
+    if (dayBookings.length > 2) {
+      const more = document.createElement('div');
+      more.className = 'more-chip';
+      more.textContent = `+${dayBookings.length - 2} 更多`;
+      chips.appendChild(more);
+    }
+    cell.appendChild(chips);
+  } else if (!isOther) {
+    // Empty mini bar
+    const mtl = document.createElement('div');
+    mtl.className = 'mtl';
+    mtl.style.opacity = '0.3';
+    cell.appendChild(mtl);
+  }
+
+  // Click handler
+  if (!isOther && dateStr) {
+    cell.onclick = () => selectDate(dateStr);
+  }
+
+  return cell;
+}
+
+function parseHour(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h + (m || 0) / 60;
+}
+
+// ============ BOOKING HELPERS ============
+function getBookingsForDate(dateStr) {
+  return state.bookings.filter(b => b.date === dateStr && b.status !== 'cancelled');
+}
+
+function getAllBookingsForDate(dateStr) {
+  return state.bookings.filter(b => b.date === dateStr);
+}
+
+// ============ DAY DETAIL PANEL ============
+function selectDate(dateStr) {
+  state.selectedDate = dateStr;
+  renderDayDetail();
+}
+
+function renderDayDetail() {
+  const dateStr = state.selectedDate;
+  if (!dateStr) return;
+
+  const [y, m, d] = dateStr.split('-');
+  const weekDay = ['日','一','二','三','四','五','六'][new Date(dateStr).getDay()];
+  const weather = getWeatherInfo(dateStr);
+
+  document.getElementById('spTitle').innerHTML = `${parseInt(m)}月${parseInt(d)}日 周${weekDay}` +
+    (weather ? ` <span style="font-size:13px;font-weight:400;color:var(--text-s);display:inline-flex;align-items:center;gap:4px"><span class="wicon">${weatherSVG(weather.svgCode, 16)}</span> ${weather.label} ${weather.max}°/${weather.min}°</span>` : '');
+
+  const body = document.getElementById('spBody');
+  const bookings = getAllBookingsForDate(dateStr);
+  const isAdmin = state.mode === 'admin';
+
+  let html = '<div class="htl">';
+
+  for (let h = HOUR_START; h < HOUR_END; h++) {
+    const timeLabel = String(h).padStart(2, '0') + ':00';
+    // Find bookings covering this hour
+    const covering = bookings.filter(b => {
+      const start = parseHour(b.startTime);
+      const end = parseHour(b.endTime);
+      return h >= Math.floor(start) && h < Math.ceil(end);
+    });
+
+    html += `<div class="hrow${covering.length > 0 ? ' booked' : ''}">`;
+    html += `<div class="htime">${timeLabel}</div>`;
+    html += '<div class="hcont">';
+
+    if (covering.length > 0) {
+      // Show the first booking that starts at this hour
+      const startingHere = covering.filter(b => parseHour(b.startTime) >= h && parseHour(b.startTime) < h + 1);
+      if (startingHere.length > 0) {
+        const b = startingHere[0];
+        const startH = parseHour(b.startTime);
+        const endH = parseHour(b.endTime);
+        const spanH = endH - startH;
+        const topOffset = (startH - h) * 42;
+        const height = spanH * 42 - 4;
+        const statusInfo = STATUS_MAP[b.status] || STATUS_MAP.pending;
+
+        html += `<div class="hbook" style="background:${b.color};top:${topOffset}px;height:${height}px" onclick="viewBooking('${b.id}')">`;
+        if (isAdmin) {
+          html += `<div class="hb-client">${b.clientName}</div>`;
+          html += `<div class="hb-type">${b.type} · ${b.startTime}-${b.endTime}</div>`;
+          if (b.location) html += `<div class="hb-loc">${b.location}</div>`;
+        } else {
+          html += `<div class="hb-type">已约 · ${b.startTime}-${b.endTime}</div>`;
+        }
+        html += '</div>';
+      }
+    } else if (isAdmin) {
+      // Free slot - show add button
+      html += `<div class="hadd" onclick="openAddModal('${dateStr}', '${String(h).padStart(2,'0')}:00')">+</div>`;
+    }
+
+    html += '</div></div>';
+  }
+  html += '</div>';
+
+  // Add button at bottom (admin only)
+  if (isAdmin) {
+    html += `<button class="add-btn" onclick="openAddModal('${dateStr}')">+ 添加预约</button>`;
+  }
+
+  // Booking detail cards (admin only)
+  if (isAdmin && bookings.length > 0) {
+    html += '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">';
+    html += '<div style="font-size:12px;color:var(--text-h);margin-bottom:8px">全部预约记录</div>';
+    bookings.sort((a, b) => a.startTime.localeCompare(b.startTime)).forEach(b => {
+      const si = STATUS_MAP[b.status] || STATUS_MAP.pending;
+      html += `<div class="booking-card">
+        <div class="bc-top">
+          <span class="bc-time" style="color:${b.color}">${b.startTime} - ${b.endTime}</span>
+          <span class="sbadge ${si.cls}">${si.label}</span>
+        </div>
+        <div class="bc-client">${b.clientName}</div>
+        <div class="bc-type">${b.type}${b.location ? ' · ' + b.location : ''}${b.price ? ' · ¥' + b.price : ''}</div>
+        ${b.contact ? '<div style="font-size:12px;color:var(--text-h)">' + b.contact + '</div>' : ''}
+        ${b.notes ? '<div style="font-size:11px;color:var(--text-h);margin-top:2px">' + b.notes + '</div>' : ''}
+        <div class="bacts">
+          <button class="babtn" onclick="editBooking('${b.id}')">编辑</button>
+          <button class="babtn del" onclick="deleteBooking('${b.id}')">删除</button>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  body.innerHTML = html;
+}
+
+// ============ MODAL ============
+function openAddModal(dateStr, defaultTime) {
+  document.getElementById('fId').value = '';
+  document.getElementById('fDate').value = dateStr || state.selectedDate;
+  document.getElementById('fStart').value = defaultTime || '09:00';
+  document.getElementById('fEnd').value = defaultTime ? incrementHour(defaultTime) : '11:00';
+  document.getElementById('fClient').value = '';
+  document.getElementById('fType').value = '人像写真';
+  document.getElementById('fPrice').value = '';
+  document.getElementById('fLoc').value = '';
+  document.getElementById('fContact').value = '';
+  document.getElementById('fStatus').value = 'pending';
+  document.getElementById('fNotes').value = '';
+  state.selectedColor = COLORS[0].hex;
+  renderColorPicker();
+  document.getElementById('modalTitle').textContent = '添加预约';
+  document.getElementById('modalBg').classList.add('on');
+}
+
+function openEditModal(booking) {
+  document.getElementById('fId').value = booking.id;
+  document.getElementById('fDate').value = booking.date;
+  document.getElementById('fStart').value = booking.startTime;
+  document.getElementById('fEnd').value = booking.endTime;
+  document.getElementById('fClient').value = booking.clientName;
+  document.getElementById('fType').value = booking.type;
+  document.getElementById('fPrice').value = booking.price || '';
+  document.getElementById('fLoc').value = booking.location || '';
+  document.getElementById('fContact').value = booking.contact || '';
+  document.getElementById('fStatus').value = booking.status;
+  document.getElementById('fNotes').value = booking.notes || '';
+  state.selectedColor = booking.color;
+  renderColorPicker();
+  document.getElementById('modalTitle').textContent = '编辑预约';
+  document.getElementById('modalBg').classList.add('on');
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('on');
+}
+
+function renderColorPicker() {
+  const el = document.getElementById('colorPick');
+  el.innerHTML = '';
+  COLORS.forEach(c => {
+    const opt = document.createElement('div');
+    opt.className = 'copt' + (state.selectedColor === c.hex ? ' on' : '');
+    opt.style.background = c.hex;
+    opt.title = c.name;
+    opt.onclick = () => {
+      state.selectedColor = c.hex;
+      renderColorPicker();
+    };
+    el.appendChild(opt);
+  });
+}
+
+function incrementHour(time) {
+  const [h, m] = time.split(':').map(Number);
+  const nh = Math.min(h + 2, HOUR_END);
+  return String(nh).padStart(2, '0') + ':00';
+}
+
+// ============ CRUD ============
+function saveBooking() {
+  const id = document.getElementById('fId').value || ('b' + Date.now() + Math.random().toString(36).substr(2, 4));
+  const dateStr = document.getElementById('fDate').value;
+  const booking = {
+    id,
+    date: dateStr,
+    startTime: document.getElementById('fStart').value,
+    endTime: document.getElementById('fEnd').value,
+    clientName: document.getElementById('fClient').value || '未命名客户',
+    type: document.getElementById('fType').value,
+    price: parseInt(document.getElementById('fPrice').value) || 0,
+    location: document.getElementById('fLoc').value,
+    contact: document.getElementById('fContact').value,
+    color: state.selectedColor,
+    status: document.getElementById('fStatus').value,
+    notes: document.getElementById('fNotes').value
+  };
+
+  // Validate time
+  if (booking.startTime >= booking.endTime) {
+    alert('结束时间必须晚于开始时间');
+    return;
+  }
+
+  // Check conflicts
+  const conflicts = state.bookings.filter(b =>
+    b.id !== id &&
+    b.date === dateStr &&
+    b.status !== 'cancelled' &&
+    !(parseHour(b.endTime) <= parseHour(booking.startTime) || parseHour(b.startTime) >= parseHour(booking.endTime))
+  );
+  if (conflicts.length > 0) {
+    if (!confirm(`该时段与 ${conflicts[0].clientName} 的预约（${conflicts[0].startTime}-${conflicts[0].endTime}）有冲突，是否继续？`)) {
+      return;
+    }
+  }
+
+  const idx = state.bookings.findIndex(b => b.id === id);
+  if (idx >= 0) {
+    state.bookings[idx] = booking;
+  } else {
+    state.bookings.push(booking);
+  }
+
+  saveState();
+  closeModal();
+  renderCalendar();
+  renderDayDetail();
+}
+
+function editBooking(id) {
+  const booking = state.bookings.find(b => b.id === id);
+  if (booking) openEditModal(booking);
+}
+
+function deleteBooking(id) {
+  if (!confirm('确认删除此预约？')) return;
+  state.bookings = state.bookings.filter(b => b.id !== id);
+  saveState();
+  renderCalendar();
+  renderDayDetail();
+}
+
+function viewBooking(id) {
+  if (state.mode === 'admin') {
+    editBooking(id);
+  }
+}
+
+// ============ NAVIGATION ============
+function changeMonth(delta) {
+  state.month += delta;
+  if (state.month > 11) { state.month = 0; state.year++; }
+  if (state.month < 0) { state.month = 11; state.year--; }
+  state.selectedDate = null;
+  renderCalendar();
+  // Reset side panel
+  document.getElementById('spTitle').textContent = '选择一个日期';
+  document.getElementById('spBody').innerHTML = '<div class="sp-empty"><p>点击左侧日历中的日期</p><p>查看或添加预约</p></div>';
+}
+
+function goToday() {
+  const now = new Date();
+  state.year = now.getFullYear();
+  state.month = now.getMonth();
+  state.selectedDate = fmt(now.getFullYear(), now.getMonth(), now.getDate());
+  renderCalendar();
+  renderDayDetail();
+}
+
+// ============ MODE & PASSWORD ============
+function setMode(mode) {
+  state.mode = mode;
+  updateLockBtn();
+  document.getElementById('clientBanner').style.display = (mode === 'client' && !state.isSharedView) ? 'flex' : 'none';
+  document.getElementById('shareBanner').style.display = state.isSharedView ? 'flex' : 'none';
+  renderCalendar();
+  if (state.selectedDate) renderDayDetail();
+}
+
+function updateLockBtn() {
+  const btn = document.getElementById('lockBtn');
+  if (state.mode === 'admin') {
+    btn.textContent = '🔓 管理中';
+    btn.className = 'hdbtn';
+  } else {
+    btn.textContent = '🔒 管理';
+    btn.className = 'hdbtn locked';
+  }
+}
+
+function toggleAdmin() {
+  if (state.mode === 'admin') {
+    // Lock back to client mode
+    state.adminUnlocked = false;
+    setMode('client');
+    return;
+  }
+  // Try to unlock admin mode
+  if (!hasPassword()) {
+    // First time: set password
+    openPwdModal('set');
+  } else {
+    openPwdModal('check');
+  }
+}
+
+function hasPassword() {
+  try {
+    return !!localStorage.getItem('photo_cal_pwd');
+  } catch(e) { return false; }
+}
+
+// Simple hash (NOT cryptographically secure, just prevents casual access)
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + ch;
+    hash = hash & hash; // Convert to 32bit int
+  }
+  return 'h' + Math.abs(hash).toString(36);
+}
+
+function openPwdModal(type) {
+  const bg = document.getElementById('pwdModalBg');
+  const title = document.getElementById('pwdTitle');
+  const desc = document.getElementById('pwdDesc');
+  const input = document.getElementById('pwdInput');
+  const hint = document.getElementById('pwdHint');
+
+  if (type === 'set') {
+    title.textContent = '🔑 设置管理密码';
+    desc.textContent = '首次使用管理模式，请设置一个密码。此密码用于防止他人修改您的排班数据。';
+    input.placeholder = '设置密码（至少4位）';
+  } else {
+    title.textContent = '🔒 输入管理密码';
+    desc.textContent = '输入密码以进入管理模式，可以添加和编辑预约';
+    input.placeholder = '请输入密码';
+  }
+  input.value = '';
+  hint.textContent = '';
+  bg.classList.add('on');
+  setTimeout(() => input.focus(), 100);
+}
+
+function closePwdModal() {
+  document.getElementById('pwdModalBg').classList.remove('on');
+}
+
+function submitPwd() {
+  const input = document.getElementById('pwdInput');
+  const hint = document.getElementById('pwdHint');
+  const pwd = input.value;
+
+  if (!hasPassword()) {
+    // Setting password for the first time
+    if (pwd.length < 4) {
+      hint.textContent = '密码至少4位';
+      return;
+    }
+    localStorage.setItem('photo_cal_pwd', simpleHash(pwd));
+    closePwdModal();
+    state.adminUnlocked = true;
+    setMode('admin');
+    showToast('✅ 管理密码已设置');
+  } else {
+    // Checking password
+    const stored = localStorage.getItem('photo_cal_pwd');
+    if (simpleHash(pwd) === stored) {
+      closePwdModal();
+      state.adminUnlocked = true;
+      setMode('admin');
+      showToast('✅ 已进入管理模式');
+    } else {
+      hint.textContent = '密码错误';
+      input.value = '';
+      input.focus();
+    }
+  }
+}
+
+// Handle Enter key in password input
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.getElementById('pwdModalBg').classList.contains('on')) {
+    submitPwd();
+  }
+});
+
+// ============ SHARE LINK ============
+function generateShareLink() {
+  if (state.bookings.length === 0) {
+    showToast('⚠️ 暂无预约数据可分享');
+    return '';
+  }
+  // Compress bookings for URL: only include fields visible to clients
+  const shareData = state.bookings
+    .filter(b => b.status !== 'cancelled')
+    .map(b => ({
+      d: b.date,           // date
+      s: b.startTime,      // start
+      e: b.endTime,        // end
+      t: b.type,           // type
+      c: b.color,          // color
+      // Note: intentionally NOT sharing clientName, contact, price, location, notes
+    }));
+
+  const json = JSON.stringify({ b: shareData, ts: Date.now(), city: state.city?.name || '' });
+  // Use base64 encoding
+  const encoded = btoa(unescape(encodeURIComponent(json)));
+  const base = window.location.origin + window.location.pathname;
+  return base + '#share=' + encoded;
+}
+
+function openShareLink() {
+  const link = generateShareLink();
+  if (!link) return;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(() => {
+      showToast('✅ 分享链接已复制到剪贴板');
+    }).catch(() => {
+      fallbackCopy(link);
+    });
+  } else {
+    fallbackCopy(link);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('✅ 分享链接已复制到剪贴板');
+  } catch(e) {
+    // Show the link in a prompt
+    prompt('请手动复制分享链接:', text);
+  }
+  document.body.removeChild(ta);
+}
+
+function parseShareLink() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#share=')) return null;
+  try {
+    const encoded = hash.substring(7);
+    const json = decodeURIComponent(escape(atob(encoded)));
+    const data = JSON.parse(json);
+    if (!data.b || !Array.isArray(data.b)) return null;
+    // Convert share data to bookings format
+    const bookings = data.b.map(b => ({
+      id: 's' + Math.random().toString(36).substr(2, 6),
+      date: b.d,
+      startTime: b.s,
+      endTime: b.e,
+      clientName: '已预约',  // Hide real client name
+      type: b.t || '拍摄',
+      price: 0,
+      location: '',
+      contact: '',
+      color: b.c || COLORS[0].hex,
+      status: 'confirmed',
+      notes: ''
+    }));
+    return { bookings, timestamp: data.ts, city: data.city };
+  } catch(e) {
+    console.warn('Failed to parse share link:', e);
+    return null;
+  }
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ============ LEGEND ============
+function renderLegend() {
+  const el = document.getElementById('legend');
+  let html = '<div class="legend-item"><div class="legend-empty"></div>空闲</div>';
+  const usedColors = [...new Set(state.bookings.map(b => b.color))];
+  COLORS.filter(c => usedColors.includes(c.hex)).forEach(c => {
+    html += `<div class="legend-item"><div class="legend-dot" style="background:${c.hex}"></div>${c.name}</div>`;
+  });
+  if (usedColors.length > 0) {
+    html += '<div class="legend-item" style="color:var(--text-h)">(色块 = 已占用时段)</div>';
+  }
+  el.innerHTML = html;
+}
+
+// ============ INIT ============
+// Check for shared data in URL first
+const sharedData = parseShareLink();
+if (sharedData) {
+  state.isSharedView = true;
+  state.bookings = sharedData.bookings;
+  state.mode = 'client';
+  // Try to use shared city
+  if (sharedData.city) {
+    const sharedCity = CITIES.find(c => c.name === sharedData.city);
+    if (sharedCity) state.city = sharedCity;
+  }
+  // Show share info
+  const timeStr = sharedData.timestamp ? new Date(sharedData.timestamp).toLocaleString('zh-CN') : '';
+  document.getElementById('shareTime').textContent = timeStr ? '更新于 ' + timeStr : '';
+  document.getElementById('shareBanner').style.display = 'flex';
+  // Hide share & lock buttons for shared view
+  document.getElementById('shareBtn').style.display = 'none';
+  document.getElementById('lockBtn').style.display = 'none';
+  // Update header subtitle
+  document.querySelector('.hd p').textContent = '查看摄影师排班 · 色块表示已约时段';
+} else {
+  // Normal admin mode - load from localStorage
+  loadState();
+}
+
+renderCitySelector();
+updateLockBtn();
+renderCalendar();
+renderColorPicker();
+
+// Weather: load cache then fetch fresh
+if (!loadWeatherCache()) {
+  if (state.city) fetchWeather();
+} else {
+  renderCalendar();
+  if (state.city) fetchWeather(); // background refresh
+}
+</script>
+</body>
+</html>
