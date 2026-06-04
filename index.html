@@ -205,6 +205,59 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .client-link-box input{flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;background:var(--card);color:var(--accent)}
 .client-link-box button{padding:6px 10px;border:1px solid var(--border);background:var(--card);border-radius:5px;font-size:11px;cursor:pointer;transition:.15s;white-space:nowrap}
 .client-link-box button:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ===== Income Stats Bar (admin only) ===== */
+.income-bar{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 18px;margin-bottom:14px;display:none;align-items:center;gap:16px;flex-wrap:wrap}
+.income-bar.on{display:flex}
+.income-item{display:flex;align-items:center;gap:6px}
+.income-item .ii-label{font-size:12px;color:var(--text-s)}
+.income-item .ii-value{font-size:18px;font-weight:700;color:var(--accent)}
+.income-item .ii-count{font-size:12px;color:var(--text-s);margin-left:4px}
+.income-divider{width:1px;height:28px;background:var(--border)}
+
+/* ===== Right Drawer (Day Detail) ===== */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:150;display:none;opacity:0;transition:opacity .25s}
+.drawer-overlay.on{display:block;opacity:1}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:400px;max-width:92vw;background:var(--card);z-index:160;transform:translateX(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);box-shadow:-4px 0 24px rgba(0,0,0,.1);display:flex;flex-direction:column}
+.drawer.on{transform:translateX(0)}
+.drawer-hd{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.drawer-hd h3{font-size:15px;font-weight:600}
+.drawer-close{width:32px;height:32px;border:none;background:var(--bg);border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--text-s);transition:.15s}
+.drawer-close:hover{background:var(--danger-bg);color:var(--danger)}
+.drawer-body{flex:1;overflow-y:auto;padding:16px 20px;-webkit-overflow-scrolling:touch}
+.drawer-body::-webkit-scrollbar{width:4px}
+.drawer-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.drawer-empty{text-align:center;padding:50px 16px;color:var(--text-h)}
+.drawer-empty p{font-size:13px}
+
+/* ===== Mobile Horizontal Scroll ===== */
+.cgrid-wrap{overflow:hidden;position:relative}
+.cgrid-wrap.scrollable{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding-bottom:4px}
+.cgrid-wrap.scrollable::-webkit-scrollbar{height:4px}
+.cgrid-wrap.scrollable::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.scroll-hint{display:none;text-align:center;font-size:11px;color:var(--text-h);padding:6px 0}
+@media(max-width:768px){
+  .cgrid-wrap.scrollable .cgrid{min-width:680px}
+  .scroll-hint.on{display:block}
+  .drawer{width:100%;max-width:100vw}
+}
+@media(min-width:769px){
+  .cgrid{min-width:auto}
+}
+
+/* Remove old side panel layout */
+.mlay{display:none !important}
+
+/* Add button */
+.add-btn{width:100%;padding:10px;margin-top:12px;background:var(--accent-light);border:1px dashed var(--accent);border-radius:7px;color:var(--accent);font-size:13px;font-weight:500;cursor:pointer;transition:.15s}
+.add-btn:hover{background:var(--accent);color:#fff}
+
+/* Booking card in drawer */
+.booking-card{background:var(--bg);border-radius:7px;padding:10px;margin-bottom:8px}
+.booking-card .bc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.booking-card .bc-time{font-size:13px;font-weight:600}
+.booking-card .bc-client{font-size:12px;font-weight:500;margin-bottom:2px}
+.booking-card .bc-type{font-size:11px;color:var(--text-s)}
 </style>
 </head>
 <body>
@@ -230,7 +283,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 
   <!-- Client Banner (hidden by default) -->
   <div class="client-banner" id="clientBanner" style="display:none">
-    <span>&#9432;</span> 您正在查看摄影师的排班情况，色块表示该时段已被预约，空白时段可约。
+    <span>ℹ️</span> 您正在查看摄影师的排班情况，色块表示该时段已被预约，空白时段可约。
   </div>
 
   <!-- Gist Banner (shown when viewing from gist) -->
@@ -259,34 +312,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
   <div class="cnav">
     <h2 id="calTitle"></h2>
     <div class="nbtn">
-      <button class="nb" onclick="changeMonth(-1)">&#8249;</button>
+      <button class="nb" onclick="changeMonth(-1)">‹</button>
       <button class="nb today" onclick="goToday()">今天</button>
-      <button class="nb" onclick="changeMonth(1)">&#8250;</button>
+      <button class="nb" onclick="changeMonth(1)">›</button>
     </div>
   </div>
 
-  <!-- Calendar Grid -->
-  <div class="cgrid" id="calGrid"></div>
+  <!-- Income Stats Bar (admin only) -->
+  <div class="income-bar" id="incomeBar"></div>
+
+  <!-- Calendar Grid with mobile scroll wrapper -->
+  <div class="cgrid-wrap" id="cgridWrap">
+    <div class="cgrid" id="calGrid"></div>
+  </div>
+  <div class="scroll-hint" id="scrollHint">← 左右滑动查看更多 →</div>
 
   <!-- Weather Source Attribution -->
   <div class="wsrc" id="wsrc" style="display:none">
     天气数据来源：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo API</a>
-    &middot; 基于 WMO 天气编码 &middot; 每3小时自动刷新
+    · 基于 WMO 天气编码 · 每3小时自动刷新
   </div>
 
-  <!-- Side Panel -->
-  <div class="mlay">
-    <div></div>
-    <div class="spanel" id="sidePanel">
-      <div class="sp-hd">
-        <h3 id="spTitle">选择一个日期</h3>
-      </div>
-      <div class="sp-bd" id="spBody">
-        <div class="sp-empty">
-          <p>点击左侧日历中的日期</p>
-          <p>查看或添加预约</p>
-        </div>
-      </div>
+  <!-- Right Drawer (Day Detail) -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-hd">
+      <h3 id="drawerTitle">选择日期</h3>
+      <button class="drawer-close" onclick="closeDrawer()">×</button>
+    </div>
+    <div class="drawer-body" id="drawerBody">
+      <div class="drawer-empty"><p>点击日历中的日期</p><p>查看或添加预约</p></div>
     </div>
   </div>
 </div>
@@ -296,7 +351,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
   <div class="modal">
     <div class="m-hd">
       <h3 id="modalTitle">添加预约</h3>
-      <button class="m-cl" onclick="closeModal()">&times;</button>
+      <button class="m-cl" onclick="closeModal()">×</button>
     </div>
     <div class="m-bd">
       <input type="hidden" id="fId">
@@ -342,7 +397,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
   <div class="modal" style="max-width:520px">
     <div class="m-hd">
       <h3>⚙️ 云同步设置</h3>
-      <button class="m-cl" onclick="closeSettings()">&times;</button>
+      <button class="m-cl" onclick="closeSettings()">×</button>
     </div>
     <div class="m-bd">
       <div class="settings-section">
@@ -427,9 +482,9 @@ function loadState(){try{const d=localStorage.getItem('photo_cal_bookings');if(d
 function saveState(){localStorage.setItem('photo_cal_bookings',JSON.stringify(state.bookings))}
 
 // ============ GIST SYNC ============
-function getPAT(){try{return localStorage.getItem('photo_cal_pat')||''}catch(e){return''}}
+function getPAT(){try{return localStorage.getItem('photo_cal_pat')||''}catch(e){return ''}}
 function setPAT(t){try{localStorage.setItem('photo_cal_pat',t)}catch(e){}}
-function getGistId(){try{return localStorage.getItem('photo_cal_gist_id')||''}catch(e){return''}}
+function getGistId(){try{return localStorage.getItem('photo_cal_gist_id')||''}catch(e){return ''}}
 function setGistId(id){try{localStorage.setItem('photo_cal_gist_id',id)}catch(e){}}
 
 function getClientLink(){
@@ -620,7 +675,7 @@ function weatherSVG(code,size=16){
   const icons={
     0:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="12" cy="12" r="5" fill="#F5C4B3" stroke="#E8943A" stroke-width="1.5"/><g stroke="#E8943A" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.6" y1="4.6" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.4" y2="19.4"/><line x1="4.6" y1="19.4" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.4" y2="4.6"/></g></svg>`,
     1:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="9" cy="10" r="4" fill="#F5C4B3" stroke="#E8943A" stroke-width="1.2"/><g stroke="#E8943A" stroke-width="1.2" stroke-linecap="round"><line x1="9" y1="2" x2="9" y2="4"/><line x1="9" y1="16" x2="9" y2="18"/><line x1="2" y1="10" x2="4" y2="10"/><line x1="3" y1="4" x2="4.5" y2="5.5"/><line x1="3" y1="16" x2="4.5" y2="14.5"/></g><path d="M10 18a5 5 0 0 1 5-5h2a5 5 0 0 1 0 10h-2a5 5 0 0 1-5-5z" fill="#c8c8c8" stroke="#999" stroke-width="0.8"/></svg>`,
-    2:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="9" r="3.5" fill="#F5C4B3" stroke="#E8943A" stroke-width="1.2"/><g stroke="#E8943A" stroke-width="1" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="4"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="3" y1="4" x2="4.5" y2="5.5"/><line x1="3" y1="14" x2="4.5" y2="12.5"/></g><path d="M8 18a4.5 4.5 0 0 1 4.5-4.5H15a4.5 4.5 0 0 1 4.5 4.5A4.5 4.5 0 0 1 15 22.5h-2.5A4.5 4.5 0 0 1 8 18z" fill="#d8d8d8" stroke="#999" stroke-width="0.8"/><path d="M4 18a3.5 3.5 0 0 1 3.5-3.5H9a3.5 3.5 0 0 1 0 7H7.5A3.5 3.5 0 0 1 4 18z" fill="#e8e8e8" stroke="#aaa" stroke-width="0.8"/></svg>`,
+    2:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="9" r="3.5" fill="#F5C4B3" stroke="#E8943A" stroke-width="1.2"/><g stroke="#E8943A" stroke-width="1" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="4"/><line x1="8" y1="16" x2="8" y2="18"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="3" y1="4" x2="4.5" y2="5.5"/><line x1="3" y1="14" x2="4.5" y2="12.5"/></g><path d="M8 18a4.5 4.5 0 0 1 4.5-4.5H15a4.5 4.5 0 0 1 4.5 4.5A4.5 4.5 0 0 1 15 22.5h-2.5A4.5 4.5 0 0 1 8 18z" fill="#d8d8d8" stroke="#999" stroke-width="0.8"/><path d="M4 18a3.5 3.5 0 0 1 3.5-3.5H9a3.5 3.5 0 0 1 0 7H7.5A3.5 3.5 0 0 1 4 18z" fill="#e8e8e8" stroke="#aaa" stroke-width="0.8"/></svg>`,
     3:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 18a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 18z" fill="#d8d8d8" stroke="#999" stroke-width="0.8"/><path d="M8 15a4.5 4.5 0 0 1 4.5-4.5H15a4.5 4.5 0 0 1 4.5 4.5A4.5 4.5 0 0 1 15 19.5h-2.5A4.5 4.5 0 0 1 8 15z" fill="#b8b8b8" stroke="#888" stroke-width="0.8"/></svg>`,
     45:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><g stroke="#aaa" stroke-width="1.5" stroke-linecap="round" opacity="0.7"><line x1="3" y1="8" x2="21" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="7" y1="20" x2="17" y2="20"/></g></svg>`,
     48:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><g stroke="#8ab4d0" stroke-width="1.5" stroke-linecap="round" opacity="0.7"><line x1="3" y1="8" x2="21" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="7" y1="20" x2="17" y2="20"/></g></svg>`,
@@ -630,25 +685,14 @@ function weatherSVG(code,size=16){
     61:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 13a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 13z" fill="#c0c0c0" stroke="#888" stroke-width="0.8"/><path d="M9 10a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#aaa" stroke="#777" stroke-width="0.8"/><g stroke="#4A90D9" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="17" x2="7" y2="21"/><line x1="12" y1="17" x2="11" y2="21"/><line x1="16" y1="17" x2="15" y2="21"/></g></svg>`,
     63:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#b8b8b8" stroke="#888" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><g stroke="#3A7CC6" stroke-width="2" stroke-linecap="round"><line x1="7" y1="16" x2="5" y2="22"/><line x1="12" y1="16" x2="10" y2="22"/><line x1="17" y1="16" x2="15" y2="22"/></g></svg>`,
     65:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 11a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 11z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><path d="M9 8a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#989898" stroke="#666" stroke-width="0.8"/><g stroke="#2B66B3" stroke-width="2.5" stroke-linecap="round"><line x1="6" y1="15" x2="3.5" y2="22.5"/><line x1="11" y1="15" x2="8.5" y2="22.5"/><line x1="16" y1="15" x2="13.5" y2="22.5"/><line x1="21" y1="15" x2="18.5" y2="22.5"/></g></svg>`,
-    66:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#b8b8b8" stroke="#888" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><g stroke="#7CB8E8" stroke-width="1.8" stroke-linecap="round"><line x1="7" y1="16" x2="6" y2="21"/><line x1="12" y1="16" x2="11" y2="21"/><line x1="17" y1="16" x2="16" y2="21"/></g><g fill="#8ab4d0"><polygon points="7,21 6,23 8,23"/></g></svg>`,
-    67:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 11a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 11z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><path d="M9 8a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#989898" stroke="#666" stroke-width="0.8"/><g stroke="#7CB8E8" stroke-width="2" stroke-linecap="round"><line x1="6" y1="15" x2="4" y2="22"/><line x1="12" y1="15" x2="10" y2="22"/><line x1="18" y1="15" x2="16" y2="22"/></g><g fill="#8ab4d0"><polygon points="6,22 5,24 7,24"/><polygon points="12,22 11,24 13,24"/></g></svg>`,
-    71:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 13a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 13z" fill="#d0d8e0" stroke="#9ab" stroke-width="0.8"/><path d="M9 10a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#c0c8d0" stroke="#8aa" stroke-width="0.8"/><g fill="#8ab4d0"><circle cx="8" cy="20" r="1.2"/><circle cx="13" cy="21" r="1.2"/></g></svg>`,
-    73:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#c0c8d0" stroke="#9ab" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b0b8c0" stroke="#8aa" stroke-width="0.8"/><g fill="#7CB8E8"><circle cx="7" cy="19" r="1.3"/><circle cx="12" cy="21" r="1.3"/><circle cx="17" cy="19" r="1.3"/></g></svg>`,
-    75:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 11a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 11z" fill="#b0b8c0" stroke="#8aa" stroke-width="0.8"/><path d="M9 8a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#a0a8b0" stroke="#7aa" stroke-width="0.8"/><g fill="#6AA4D8"><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="18" cy="18" r="1.5"/><circle cx="9" cy="22" r="1.5"/><circle cx="15" cy="22" r="1.5"/></g></svg>`,
-    77:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#c0c8d0" stroke="#9ab" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b0b8c0" stroke="#8aa" stroke-width="0.8"/><g fill="#8ab4d0"><rect x="7" y="19" width="2" height="2" rx="0.3" transform="rotate(45,8,20)"/><rect x="12" y="20" width="2" height="2" rx="0.3" transform="rotate(45,13,21)"/></g></svg>`,
-    80:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="7" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 14a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 14z" fill="#c0c0c0" stroke="#888" stroke-width="0.8"/><path d="M9 11a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b0b0b0" stroke="#777" stroke-width="0.8"/><g stroke="#4A90D9" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="17" x2="7" y2="21"/><line x1="13" y1="17" x2="12" y2="21"/></g></svg>`,
-    81:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="6" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 13a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 13z" fill="#b8b8b8" stroke="#888" stroke-width="0.8"/><path d="M9 10a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><g stroke="#3A7CC6" stroke-width="1.8" stroke-linecap="round"><line x1="7" y1="16" x2="5.5" y2="21"/><line x1="12" y1="16" x2="10.5" y2="21"/><line x1="17" y1="16" x2="15.5" y2="21"/></g></svg>`,
-    82:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="5" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#a8a8a8" stroke="#777" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#989898" stroke="#666" stroke-width="0.8"/><g stroke="#2B66B3" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="15" x2="4" y2="22"/><line x1="11" y1="15" x2="9" y2="22"/><line x1="16" y1="15" x2="14" y2="22"/><line x1="21" y1="15" x2="19" y2="22"/></g></svg>`,
-    85:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="7" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 13a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 13z" fill="#d0d8e0" stroke="#9ab" stroke-width="0.8"/><path d="M9 10a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#c0c8d0" stroke="#8aa" stroke-width="0.8"/><g fill="#8ab4d0"><circle cx="8" cy="19" r="1.2"/><circle cx="13" cy="21" r="1.2"/></g></svg>`,
-    86:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="6" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#c0c8d0" stroke="#8aa" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b0b8c0" stroke="#7aa" stroke-width="0.8"/><g fill="#6AA4D8"><circle cx="7" cy="18" r="1.4"/><circle cx="12" cy="20" r="1.4"/><circle cx="17" cy="18" r="1.4"/></g></svg>`,
+    80:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="8" cy="7" r="3" fill="#F5C4B3" stroke="#E8943A" stroke-width="1"/><path d="M5 14a3.5 3.5 0 0 1 3.5-3.5H6a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 14z" fill="#c0c0c0" stroke="#888" stroke-width="0.8"/><path d="M9 11a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#b0b0b0" stroke="#777" stroke-width="0.8"/><g stroke="#4A90D9" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="17" x2="7" y2="21"/><line x1="13" y1="17" x2="12" y2="21"/></g></svg>`,
     95:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#888" stroke="#666" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#777" stroke="#555" stroke-width="0.8"/><polygon points="12,14 9,20 11.5,20 10,24 16,18 13,18 15,14" fill="#E8943A"/></svg>`,
-    96:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 12a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 12z" fill="#888" stroke="#666" stroke-width="0.8"/><path d="M9 9a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#777" stroke="#555" stroke-width="0.8"/><polygon points="12,14 9,20 11.5,20 10,24 16,18 13,18 15,14" fill="#E8943A"/><g fill="#6AA4D8"><circle cx="7" cy="21" r="1"/><circle cx="17" cy="21" r="1"/></g></svg>`,
     99:`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M5 11a3.5 3.5 0 0 1 3.5-3.5H10a3.5 3.5 0 0 1 0 7H8.5A3.5 3.5 0 0 1 5 11z" fill="#777" stroke="#555" stroke-width="0.8"/><path d="M9 8a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z" fill="#666" stroke="#444" stroke-width="0.8"/><polygon points="11,13 8,19 10.5,19 9,23 16,17 13,17 15,13" fill="#D85A30"/><g stroke="#2B66B3" stroke-width="2" stroke-linecap="round"><line x1="6" y1="17" x2="4" y2="22"/><line x1="18" y1="17" x2="16" y2="22"/></g></svg>`
   };
   return icons[code]||`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><circle cx="12" cy="12" r="5" fill="none" stroke="#aaa" stroke-width="1.5"/><text x="12" y="16" text-anchor="middle" font-size="10" fill="#aaa">?</text></svg>`;
 }
 
-const WMO_CODES={0:{svg:0,label:'晴'},1:{svg:1,label:'大部晴'},2:{svg:2,label:'多云'},3:{svg:3,label:'阴'},45:{svg:45,label:'雾'},48:{svg:48,label:'冻雾'},51:{svg:51,label:'小毛毛雨'},53:{svg:53,label:'毛毛雨'},55:{svg:55,label:'大毛毛雨'},61:{svg:61,label:'小雨'},63:{svg:63,label:'中雨'},65:{svg:65,label:'大雨'},66:{svg:66,label:'冻雨'},67:{svg:67,label:'大冻雨'},71:{svg:71,label:'小雪'},73:{svg:73,label:'中雪'},75:{svg:75,label:'大雪'},77:{svg:77,label:'雪粒'},80:{svg:80,label:'小阵雨'},81:{svg:81,label:'阵雨'},82:{svg:82,label:'大阵雨'},85:{svg:85,label:'小阵雪'},86:{svg:86,label:'大阵雪'},95:{svg:95,label:'雷暴'},96:{svg:96,label:'雷暴冰雹'},99:{svg:99,label:'强雷暴冰雹'}};
+const WMO_CODES={0:{svg:0,label:'晴'},1:{svg:1,label:'大部晴'},2:{svg:2,label:'多云'},3:{svg:3,label:'阴'},45:{svg:45,label:'雾'},48:{svg:48,label:'冻雾'},51:{svg:51,label:'小毛毛雨'},53:{svg:53,label:'毛毛雨'},55:{svg:55,label:'大毛毛雨'},61:{svg:61,label:'小雨'},63:{svg:63,label:'中雨'},65:{svg:65,label:'大雨'},80:{svg:80,label:'小阵雨'},81:{svg:81,label:'阵雨'},82:{svg:82,label:'大阵雨'},95:{svg:95,label:'雷暴'},96:{svg:96,label:'雷暴冰雹'},99:{svg:99,label:'强雷暴冰雹'}};
 
 function renderCitySelector(){const sel=document.getElementById('citySelect');if(!sel)return;sel.innerHTML='<option value="">选择城市</option>';CITIES.forEach(c=>{const opt=document.createElement('option');opt.value=c.name;opt.textContent=c.name;if(state.city&&state.city.name===c.name)opt.selected=true;sel.appendChild(opt)})}
 function changeCity(cityName){const city=CITIES.find(c=>c.name===cityName);if(!city)return;state.city=city;localStorage.setItem('photo_cal_city',JSON.stringify(city));state.weather={};state.weatherError=null;renderCalendar();fetchWeather()}
@@ -676,8 +720,12 @@ function renderCalendar(){
   for(let d=1;d<=daysInMonth;d++){const dateStr=fmt(year,month,d);grid.appendChild(createDayCell(d,false,getWeatherInfo(dateStr),dateStr===todayStr,dateStr,getBookingsForDate(dateStr)))}
   const totalCells=firstDay+daysInMonth;const remaining=totalCells%7===0?0:7-(totalCells%7);
   for(let d=1;d<=remaining;d++){grid.appendChild(createDayCell(d,true,null))}
-  renderLegend()
+  renderLegend();
+  // Enable mobile scroll hint
+  const wrap=document.getElementById('cgridWrap');
+  if(window.innerWidth<=768){wrap.classList.add('scrollable');document.getElementById('scrollHint').classList.add('on')}else{wrap.classList.remove('scrollable');document.getElementById('scrollHint').classList.remove('on')}
 }
+
 function fmt(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
 function createDayCell(dayNum,isOther,weather,isToday,dateStr,dayBookings){
   const cell=document.createElement('div');cell.className='cday'+(isOther?' other':'')+(isToday?' today':'');
@@ -697,13 +745,13 @@ function parseHour(timeStr){const[h,m]=timeStr.split(':').map(Number);return h+(
 // ============ BOOKING ============
 function getBookingsForDate(dateStr){return state.bookings.filter(b=>b.date===dateStr&&b.status!=='cancelled')}
 function getAllBookingsForDate(dateStr){return state.bookings.filter(b=>b.date===dateStr)}
-function selectDate(dateStr){state.selectedDate=dateStr;renderDayDetail()}
+function selectDate(dateStr){state.selectedDate=dateStr;openDrawer();renderDayDetail()}
 
 function renderDayDetail(){
   const dateStr=state.selectedDate;if(!dateStr)return;
-  const[,m,d]=dateStr.split('-');const weekDay=['日','一','二','三','四','五','六'][new Date(dateStr).getDay()];const weather=getWeatherInfo(dateStr);
-  document.getElementById('spTitle').innerHTML=parseInt(m)+'月'+parseInt(d)+'日 周'+weekDay+(weather?' <span style="font-size:13px;font-weight:400;color:var(--text-s);display:inline-flex;align-items:center;gap:4px"><span class="wicon">'+weatherSVG(weather.svgCode,16)+'</span> '+weather.label+' '+weather.max+'°/'+weather.min+'°</span>':'');
-  const body=document.getElementById('spBody');const bookings=getAllBookingsForDate(dateStr);const isAdmin=state.mode==='admin';
+  const parts=dateStr.split('-');const m=parseInt(parts[1]);const d=parseInt(parts[2]);const weekDay=['日','一','二','三','四','五','六'][new Date(dateStr).getDay()];const weather=getWeatherInfo(dateStr);
+  document.getElementById('drawerTitle').innerHTML=parseInt(m)+'月'+parseInt(d)+'日 周'+weekDay+(weather?' <span style="font-size:13px;font-weight:400;color:var(--text-s);display:inline-flex;align-items:center;gap:4px"><span class="wicon">'+weatherSVG(weather.svgCode,16)+'</span> '+weather.label+' '+weather.max+'°/'+weather.min+'°</span>':'');
+  const body=document.getElementById('drawerBody');const bookings=getAllBookingsForDate(dateStr);const isAdmin=state.mode==='admin';
   let html='<div class="htl">';
   for(let h=HOUR_START;h<HOUR_END;h++){
     const timeLabel=String(h).padStart(2,'0')+':00';
@@ -714,8 +762,8 @@ function renderDayDetail(){
         html+='<div class="hbook" style="background:'+b.color+';top:'+topOffset+'px;height:'+height+'px" onclick="viewBooking(\''+b.id+'\')">';
         if(isAdmin){html+='<div class="hb-client">'+b.clientName+'</div><div class="hb-type">'+b.type+' · '+b.startTime+'-'+b.endTime+'</div>';if(b.location)html+='<div class="hb-loc">'+b.location+'</div>'}
         else{html+='<div class="hb-type">已约 · '+b.startTime+'-'+b.endTime+'</div>'}
-        html+='</div>'}
-    }else if(isAdmin){html+='<div class="hadd" onclick="openAddModal(\''+dateStr+'\',\''+String(h).padStart(2,'0')+':00\')">+</div>'}
+        html+='</div>'}}
+    else if(isAdmin){html+='<div class="hadd" onclick="openAddModal(\''+dateStr+'\',\''+String(h).padStart(2,'0')+':00\')">+</div>'}
     html+='</div></div>'
   }
   html+='</div>';
@@ -724,7 +772,7 @@ function renderDayDetail(){
     bookings.sort((a,b)=>a.startTime.localeCompare(b.startTime)).forEach(b=>{const si=STATUS_MAP[b.status]||STATUS_MAP.pending;
       html+='<div class="booking-card"><div class="bc-top"><span class="bc-time" style="color:'+b.color+'">'+b.startTime+' - '+b.endTime+'</span><span class="sbadge '+si.cls+'">'+si.label+'</span></div><div class="bc-client">'+b.clientName+'</div><div class="bc-type">'+b.type+(b.location?' · '+b.location:'')+(b.price?' · ¥'+b.price:'')+'</div>'+(b.contact?'<div style="font-size:12px;color:var(--text-h)">'+b.contact+'</div>':'')+(b.notes?'<div style="font-size:11px;color:var(--text-h);margin-top:2px">'+b.notes+'</div>':'')+'<div class="bacts"><button class="babtn" onclick="editBooking(\''+b.id+'\')">编辑</button><button class="babtn del" onclick="deleteBooking(\''+b.id+'\')">删除</button></div></div>'});
     html+='</div>'}
-  body.innerHTML=html
+  body.innerHTML=html;
 }
 
 // ============ MODAL ============
@@ -745,18 +793,44 @@ function saveBooking(){
   const idx=state.bookings.findIndex(b=>b.id===id);if(idx>=0)state.bookings[idx]=booking;else state.bookings.push(booking);
   saveState();closeModal();renderCalendar();renderDayDetail();
   // Auto sync to Gist if connected
-  if(getGistId()&&getPAT())syncToGist()
+  if(getGistId()&&getPAT())syncToGist();
+  // Update income bar
+  renderIncomeBar();
 }
 function editBooking(id){const booking=state.bookings.find(b=>b.id===id);if(booking)openEditModal(booking)}
-function deleteBooking(id){if(!confirm('确认删除此预约？'))return;state.bookings=state.bookings.filter(b=>b.id!==id);saveState();renderCalendar();renderDayDetail();if(getGistId()&&getPAT())syncToGist()}
+function deleteBooking(id){if(!confirm('确认删除此预约？'))return;state.bookings=state.bookings.filter(b=>b.id!==id);saveState();renderCalendar();renderDayDetail();if(getGistId()&&getPAT())syncToGist();renderIncomeBar()}
 function viewBooking(id){if(state.mode==='admin')editBooking(id)}
 
+// ============ DRAWER ============
+function openDrawer(){document.getElementById('drawer').classList.add('on');document.getElementById('drawerOverlay').classList.add('on');document.body.style.overflow='hidden'}
+function closeDrawer(){document.getElementById('drawer').classList.remove('on');document.getElementById('drawerOverlay').classList.remove('on');document.body.style.overflow=''}
+
+// ============ INCOME STATS ============
+function renderIncomeBar(){
+  const bar=document.getElementById('incomeBar');
+  if(state.mode!=='admin'||state.isGistView){bar.className='income-bar';return}
+  const{year,month}=state;
+  const monthBookings=state.bookings.filter(b=>{
+    if(b.status==='cancelled')return false;
+    const[bY,bM]=b.date.split('-').map(Number);
+    return bY===year&&bM===(month+1)
+  });
+  const confirmed=monthBookings.filter(b=>b.status==='confirmed');
+  const pending=monthBookings.filter(b=>b.status==='pending');
+  const totalIncome=confirmed.reduce((s,b)=>s+(b.price||0),0);
+  const pendingIncome=pending.reduce((s,b)=>s+(b.price||0),0);
+  let html='<div class="income-item"><span class="ii-label">📅 '+year+'年'+(month+1)+'月</span></div><div class="income-divider"></div>';
+  html+='<div class="income-item"><span class="ii-label">已确认收入</span><span class="ii-value">¥'+totalIncome.toLocaleString()+'</span><span class="ii-count">('+confirmed.length+'单)</span></div>';
+  if(pendingIncome>0){html+='<div class="income-divider"></div><div class="income-item"><span class="ii-label">待确认</span><span class="ii-value" style="color:var(--warning);font-size:15px">¥'+pendingIncome.toLocaleString()+'</span><span class="ii-count">('+pending.length+'单)</span></div>'}
+  bar.innerHTML=html;bar.className='income-bar on';
+}
+
 // ============ NAVIGATION ============
-function changeMonth(delta){state.month+=delta;if(state.month>11){state.month=0;state.year++}if(state.month<0){state.month=11;state.year--}state.selectedDate=null;renderCalendar();document.getElementById('spTitle').textContent='选择一个日期';document.getElementById('spBody').innerHTML='<div class="sp-empty"><p>点击左侧日历中的日期</p><p>查看或添加预约</p></div>'}
-function goToday(){const now=new Date();state.year=now.getFullYear();state.month=now.getMonth();state.selectedDate=fmt(now.getFullYear(),now.getMonth(),now.getDate());renderCalendar();renderDayDetail()}
+function changeMonth(delta){state.month+=delta;if(state.month>11){state.month=0;state.year++}if(state.month<0){state.month=11;state.year--}state.selectedDate=null;renderCalendar();closeDrawer();renderIncomeBar()}
+function goToday(){const now=new Date();state.year=now.getFullYear();state.month=now.getMonth();state.selectedDate=fmt(now.getFullYear(),now.getMonth(),now.getDate());renderCalendar();openDrawer();renderDayDetail();renderIncomeBar()}
 
 // ============ MODE & PASSWORD ============
-function setMode(mode){state.mode=mode;updateLockBtn();document.getElementById('clientBanner').style.display=(mode==='client'&&!state.isGistView)?'flex':'none';document.getElementById('gistBanner').style.display=state.isGistView?'flex':'none';renderCalendar();if(state.selectedDate)renderDayDetail();updateSyncBar()}
+function setMode(mode){state.mode=mode;updateLockBtn();document.getElementById('clientBanner').style.display=(mode==='client'&&!state.isGistView)?'flex':'none';document.getElementById('gistBanner').style.display=state.isGistView?'flex':'none';renderCalendar();if(state.selectedDate)renderDayDetail();updateSyncBar();renderIncomeBar()}
 function updateLockBtn(){const btn=document.getElementById('lockBtn');if(state.mode==='admin'){btn.textContent='🔓 管理中';btn.className='hdbtn'}else{btn.textContent='🔒 管理';btn.className='hdbtn locked'}}
 function toggleAdmin(){if(state.mode==='admin'){state.adminUnlocked=false;setMode('client');return}if(!hasPassword())openPwdModal('set');else openPwdModal('check')}
 function hasPassword(){try{return!!localStorage.getItem('photo_cal_pwd')}catch(e){return false}}
@@ -818,6 +892,9 @@ function renderLegend(){const el=document.getElementById('legend');let html='<di
 
   renderCitySelector();updateLockBtn();renderCalendar();renderColorPicker();
   if(!loadWeatherCache()){if(state.city)fetchWeather()}else{renderCalendar();if(state.city)fetchWeather()}
+  
+  // Render income bar for admin mode
+  renderIncomeBar();
 })();
 </script>
 </body>
